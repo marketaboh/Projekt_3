@@ -16,9 +16,9 @@ def ziskej_parsovanou_odpoved(odpoved_serveru: str) -> bs.BeautifulSoup:
     ''' funkce zpracuje odpoved serveru a vrati ji '''
     return bs.BeautifulSoup(odpoved_serveru, features="html.parser")
 
-def vyber_vsechny_td_tagy(rozdelene_html,class_name: str) -> bs.element.ResultSet:
+def vyber_vsechny_tagy(rozdelene_html, tag: str, attributes: str) -> bs.element.ResultSet:
     ''' funkce vybere vsechny tagy "td" podle zadane tridy '''
-    return rozdelene_html.find_all("td", {"class": f"{class_name}"})
+    return rozdelene_html.find_all(tag, attributes)
 
 def ziskej_url_kod_obci(td_tagy : bs.element.ResultSet) -> dict:
     ''' funkce vrati url obce z tagu "td" upravi url a vytahne kod obce'''
@@ -47,8 +47,8 @@ def ziskej_info_obce(url: str = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=
     ''' funkce ziska info o obcich zadaneho uzemniho celku a vytvori z nich slovnik '''
     odpoved = posli_pozadavek_get(volby_url)
     rozdelene_html = ziskej_parsovanou_odpoved(odpoved)
-    td_tagy_odkazy = vyber_vsechny_td_tagy(rozdelene_html,"cislo")
-    td_tagy_nazev = vyber_vsechny_td_tagy(rozdelene_html,"overflow_name")
+    td_tagy_odkazy = vyber_vsechny_tagy(rozdelene_html, "td", {"class" :"cislo"})
+    td_tagy_nazev = vyber_vsechny_tagy(rozdelene_html, "td", {"class" : "overflow_name"})
     url_kod_obce = ziskej_url_kod_obci(td_tagy_odkazy)
     nazev_obce = ziskej_nazev_obci(td_tagy_nazev)
     obec_info = rozsirit_url_kod_obce(url_kod_obce, nazev_obce)
@@ -57,10 +57,17 @@ def ziskej_info_obce(url: str = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=
 volby_url = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
 
 if __name__ == "__main__":
-  print(ziskej_info_obce(volby_url))
-   # url_obce = uprav_url(ref)
-"""  for obec in url_obce:
-        print(obec)
-        odpoved_obec = posli_pozadavek_get(obec)
-        rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec) """
-       
+    
+    obce_info = ziskej_info_obce(volby_url)
+    kod_obce = '590240'
+    url, nazev = obce_info[kod_obce]
+    #print(url, nazev)
+    odpoved_obec = posli_pozadavek_get(url)
+    rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec) 
+    vsechny_tabulky = vyber_vsechny_tagy(rozdelene_html_obec, "table", {"class": "table"})
+    print(vsechny_tabulky[0])
+
+#for kod_obec, (url, nazev) in obce_info.items():
+        #print(kod_obec, url, nazev)
+        #odpoved_obec = posli_pozadavek_get(url)
+        #rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec) 
