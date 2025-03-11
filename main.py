@@ -7,44 +7,60 @@ email: bohackovama@gmail.com
 import requests
 import bs4 as bs
 
-def posli_pozadavek_get(url):
+def posli_pozadavek_get(url: str) -> str:
     ''' funkce posle pozadavek na server a vrati odpoved '''
     response = requests.get(url)
     return response.text
 
-def ziskej_parsovanou_odpoved(odpoved_serveru):
+def ziskej_parsovanou_odpoved(odpoved_serveru: str) -> bs.BeautifulSoup:
     ''' funkce zpracuje odpoved serveru a vrati ji '''
     return bs.BeautifulSoup(odpoved_serveru, features="html.parser")
 
-def vyber_vsechny_td_tagy(rozdelene_html):
-    ''' funkce vybere vsechny tagy "td" s class "cislo" '''
-    return rozdelene_html.find_all("td", {"class": "cislo"})
+def vyber_vsechny_td_tagy(rozdelene_html,class_name: str) -> bs.element.ResultSet:
+    ''' funkce vybere vsechny tagy "td" podle zadane tridy '''
+    return rozdelene_html.find_all("td", {"class": f"{class_name}"})
 
-def ziskej_url_obci(td_tagy):
-    ''' funkce vrati url obce z tagu "td" '''
-    odkazy = []
+def ziskej_url_kod_obci(td_tagy : bs.element.ResultSet) -> dict:
+    ''' funkce vrati url obce z tagu "td" upravi url a vytahne kod obce'''
+    url_kod_obce = {}
     for td_tag in td_tagy:
-        odkazy.append(td_tag.a["href"])
-    return odkazy
+        kod_obce = td_tag.get_text().strip()
+        odkaz = f"https://www.volby.cz/pls/ps2017nss/{td_tag.a["href"]}"   # Extract the URL
+        url_kod_obce[kod_obce] = odkaz  # ulozeni do slovniku
+    return url_kod_obce
 
-def uprav_url(url):
-    ''' funkce upravi url obce '''
-    obce  = []
-    for odkaz in url:
-       obce.append(f"https://www.volby.cz/pls/ps2017nss/{odkaz}") 
-    return obce   
+def ziskej_nazev_obci(td_tagy : bs.element.ResultSet) -> list:
+    ''' funkce vrati nazev obce z tagu "td" '''
+    nazev_obce = []
+    for td_tag in td_tagy:
+        nazev = td_tag.get_text().strip()
+        nazev_obce.append(nazev)  # ulozeni nazvu obce do listu
+    return nazev_obce
+
+def rozsirit_url_kod_obce(url_kod_obce : dict, nazev_obce : list) -> dict:
+    ''' funkce rozsiri dict url_kod_obce o nazev obce '''
+    for kod, nazev in zip(url_kod_obce.keys(), nazev_obce):
+        url_kod_obce[kod] = (url_kod_obce[kod], nazev)
+    return url_kod_obce
+
+def ziskej_info_obce(url: str = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103") -> dict:
+    ''' funkce ziska info o obcich zadaneho uzemniho celku a vytvori z nich slovnik '''
+    odpoved = posli_pozadavek_get(volby_url)
+    rozdelene_html = ziskej_parsovanou_odpoved(odpoved)
+    td_tagy_odkazy = vyber_vsechny_td_tagy(rozdelene_html,"cislo")
+    td_tagy_nazev = vyber_vsechny_td_tagy(rozdelene_html,"overflow_name")
+    url_kod_obce = ziskej_url_kod_obci(td_tagy_odkazy)
+    nazev_obce = ziskej_nazev_obci(td_tagy_nazev)
+    obec_info = rozsirit_url_kod_obce(url_kod_obce, nazev_obce)
+    return obec_info
 
 volby_url = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
 
 if __name__ == "__main__":
-    odpoved = posli_pozadavek_get(volby_url)
-    rozdelene_html = ziskej_parsovanou_odpoved(odpoved)
-    td_tagy = vyber_vsechny_td_tagy(rozdelene_html)
-    ref = ziskej_url_obci(td_tagy)
-    url_obce = uprav_url(ref)
-    #print(url_obce[0])
-    for obec in url_obce:
+  print(ziskej_info_obce(volby_url))
+   # url_obce = uprav_url(ref)
+"""  for obec in url_obce:
         print(obec)
         odpoved_obec = posli_pozadavek_get(obec)
-        rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec)
+        rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec) """
        
