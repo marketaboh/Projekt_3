@@ -75,22 +75,35 @@ def ziskej_nazvy_atributu(obce_info: dict) -> list:
             nazvy_atributu.append(text_content)
     return nazvy_atributu
 
+def ziskej_hodnoty_obce(obce_info: dict) -> list:
+    ''' funkce vrati hodnoty atributu pro vsechny obce '''
+    atributy_hodnoty = [
+    ("td", {"headers": "sa2"}),
+    ("td", {"headers": "sa3"}),
+    ("td", {"headers": "sa6"}),
+    ("td", {"headers": "t1sa2 t1sb3"}),
+    ("td", {"headers": "t2sa2 t2sb3"})
+    ]
+    vsechny_obce = []
+    for kod_obec, (url, nazev) in obce_info.items():
+        hodnoty  = []
+        hodnoty.append(nazev)
+        odpoved_obec = posli_pozadavek_get(url)
+        rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec)
+        for tag, atributy in atributy_hodnoty:
+            tagy = vyber_vsechny_tagy(rozdelene_html_obec, tag, atributy)
+            for tag in tagy:
+                text_content = tag.get_text(separator=" ").strip()
+                hodnoty.append(text_content)
+        vsechny_obce.append(hodnoty)
+    return vsechny_obce
+
 volby_url = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
 
 if __name__ == "__main__":
     
     obce_info = ziskej_info_obce(volby_url)
     nazvy_atributu = ziskej_nazvy_atributu(obce_info)
-    print(nazvy_atributu)
-    atributy_hodnoty = [
-    ("td", {"headers": "sa2"}),
-    ("td", {"headers": "sa3"}),
-    ("td", {"headersd": "sa6"}),
-    ("td", {"headers": "t1sa2 t1sb3"}),
-    ("td", {"headers": "t2sa2 t2sb3"})
-    ]
-
-#for kod_obec, (url, nazev) in obce_info.items():
-        #print(kod_obec, url, nazev)
-        #odpoved_obec = posli_pozadavek_get(url)
-        #rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec) 
+    #print(nazvy_atributu)
+    hodnoty_obce = ziskej_hodnoty_obce(obce_info)
+    print(hodnoty_obce[0])
