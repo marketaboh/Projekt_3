@@ -99,7 +99,7 @@ def ziskej_hodnoty_obce(obce_info: dict) -> list:
         vsechny_obce.append(hodnoty)
     return vsechny_obce
 
-def uloz_data_do_csv(nazev_souboru):
+def uloz_data_do_csv(nazev_souboru: str, nazvy_atributu: list, hodnoty_obce: list):
     ''' funkce ulozi data do csv souboru '''
     with open(nazev_souboru, mode='w', newline='', encoding='utf-8') as csv_file:
         writer = csv.writer(csv_file)
@@ -107,6 +107,7 @@ def uloz_data_do_csv(nazev_souboru):
         for hodnoty in hodnoty_obce:
             writer.writerow(hodnoty)
     print(f"Data byla uložena do souboru: {nazev_souboru}")
+
 volby_url = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
 
 if __name__ == "__main__":
@@ -117,4 +118,4 @@ if __name__ == "__main__":
     hodnoty_obce = ziskej_hodnoty_obce(obce_info)
     #print(hodnoty_obce[0])
     csv_soubor = "Prostejov.csv"
-    uloz_data_do_csv(csv_soubor)    
+    uloz_data_do_csv(csv_soubor,nazvy_atributu,hodnoty_obce)    
