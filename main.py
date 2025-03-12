@@ -6,6 +6,7 @@ email: bohackovama@gmail.com
 """
 import requests
 import bs4 as bs
+import csv
 
 def posli_pozadavek_get(url: str) -> str:
     ''' funkce posle pozadavek na server a vrati odpoved '''
@@ -57,7 +58,7 @@ def ziskej_info_obce(url: str = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=
 def ziskej_nazvy_atributu(obce_info: dict) -> list:
     ''' funkce vrati nazvy atributu u prvni obce v seznamu'''
     kod_prvni_obce = next(iter(obce_info))
-    url, nazev = obce_info[kod_prvni_obce]
+    url = obce_info[kod_prvni_obce][0]
     odpoved_obec = posli_pozadavek_get(url)
     rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec) 
     atributy_nazvy = [
@@ -67,7 +68,7 @@ def ziskej_nazvy_atributu(obce_info: dict) -> list:
     ("td", {"headers": "t1sa1 t1sb2"}),
     ("td", {"headers": "t2sa1 t2sb2"})
     ]
-    nazvy_atributu = []
+    nazvy_atributu = ["Název obce"]
     for tag, atributy in atributy_nazvy:
         tagy = vyber_vsechny_tagy(rozdelene_html_obec, tag, atributy)
         for tag in tagy:
@@ -98,6 +99,14 @@ def ziskej_hodnoty_obce(obce_info: dict) -> list:
         vsechny_obce.append(hodnoty)
     return vsechny_obce
 
+def uloz_data_do_csv(nazev_souboru):
+    ''' funkce ulozi data do csv souboru '''
+    with open(nazev_souboru, mode='w', newline='', encoding='utf-8') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(nazvy_atributu)
+        for hodnoty in hodnoty_obce:
+            writer.writerow(hodnoty)
+    print(f"Data byla uložena do souboru: {nazev_souboru}")
 volby_url = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
 
 if __name__ == "__main__":
@@ -106,4 +115,6 @@ if __name__ == "__main__":
     nazvy_atributu = ziskej_nazvy_atributu(obce_info)
     #print(nazvy_atributu)
     hodnoty_obce = ziskej_hodnoty_obce(obce_info)
-    print(hodnoty_obce[0])
+    #print(hodnoty_obce[0])
+    csv_soubor = "Prostejov.csv"
+    uloz_data_do_csv(csv_soubor)    
