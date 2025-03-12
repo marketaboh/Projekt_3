@@ -54,18 +54,41 @@ def ziskej_info_obce(url: str = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=
     obec_info = rozsirit_url_kod_obce(url_kod_obce, nazev_obce)
     return obec_info
 
+def ziskej_nazvy_atributu(obce_info: dict) -> list:
+    ''' funkce vrati nazvy atributu u prvni obce v seznamu'''
+    kod_prvni_obce = next(iter(obce_info))
+    url, nazev = obce_info[kod_prvni_obce]
+    odpoved_obec = posli_pozadavek_get(url)
+    rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec) 
+    atributy_nazvy = [
+    ("th", {"id": "sa2"}),
+    ("th", {"id": "sa3"}),
+    ("th", {"id": "sa6"}),
+    ("td", {"headers": "t1sa1 t1sb2"}),
+    ("td", {"headers": "t2sa1 t2sb2"})
+    ]
+    nazvy_atributu = []
+    for tag, atributy in atributy_nazvy:
+        tagy = vyber_vsechny_tagy(rozdelene_html_obec, tag, atributy)
+        for tag in tagy:
+            text_content = tag.get_text(separator=" ").strip()
+            nazvy_atributu.append(text_content)
+    return nazvy_atributu
+
 volby_url = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
 
 if __name__ == "__main__":
     
     obce_info = ziskej_info_obce(volby_url)
-    kod_obce = '590240'
-    url, nazev = obce_info[kod_obce]
-    #print(url, nazev)
-    odpoved_obec = posli_pozadavek_get(url)
-    rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec) 
-    vsechny_tabulky = vyber_vsechny_tagy(rozdelene_html_obec, "table", {"class": "table"})
-    print(vsechny_tabulky[0])
+    nazvy_atributu = ziskej_nazvy_atributu(obce_info)
+    print(nazvy_atributu)
+    atributy_hodnoty = [
+    ("td", {"headers": "sa2"}),
+    ("td", {"headers": "sa3"}),
+    ("td", {"headersd": "sa6"}),
+    ("td", {"headers": "t1sa2 t1sb3"}),
+    ("td", {"headers": "t2sa2 t2sb3"})
+    ]
 
 #for kod_obec, (url, nazev) in obce_info.items():
         #print(kod_obec, url, nazev)
