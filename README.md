@@ -15,8 +15,8 @@ Projekt vyžaduje Python 3.
 
 1. Naklonujte si tento repozitář:
    ```sh
-   git clone <URL_REPOZITARE>
-   cd <NAZEV_REPOZITARE>
+   git clone https://github.com/marketaboh/Projekt_3.git
+   cd ./Projekt_3
    ```
 
 2. Nainstalujte potřebné knihovny:
