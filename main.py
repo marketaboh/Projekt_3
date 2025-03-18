@@ -7,11 +7,29 @@ email: bohackovama@gmail.com
 import requests
 import bs4 as bs
 import csv
+import sys
 
 def posli_pozadavek_get(url: str) -> str:
     ''' funkce posle pozadavek na server a vrati odpoved '''
-    response = requests.get(url)
-    return response.text
+    try:
+        response = requests.get(url)
+   # Pokud status je 200, ale obsah obsahuje "Page not found"
+        if response.status_code == 200:
+            if "Page not found" in response.text:
+                print(f"Chyba: Stránka nebyla nalezena (obsahuje 'Page not found') na URL: {url}")
+                sys.exit()  # Ukončí program
+        # Zkontrolujeme další HTTP chyby
+        response.raise_for_status()
+    
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP chyba: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"Chyba požadavku: {req_err}")
+    except Exception as err:
+        print(f"Došlo k neočekávané chybě: {err}")  
+    else:
+        # Pokud žádná chyba nenastala, vrátí obsah odpovědi
+        return response.text
 
 def ziskej_parsovanou_odpoved(odpoved_serveru: str) -> bs.BeautifulSoup:
     ''' funkce zpracuje odpoved serveru a vrati ji '''
@@ -32,28 +50,21 @@ def ziskej_url_kod_obci(td_tagy : bs.element.ResultSet) -> dict:
 
 def ziskej_nazev_obci(td_tagy : bs.element.ResultSet) -> list:
     ''' funkce vrati nazev obce z tagu "td" '''
-    nazev_obce = []
-    for td_tag in td_tagy:
-        nazev = td_tag.get_text().strip()
-        nazev_obce.append(nazev)  # ulozeni nazvu obce do listu
-    return nazev_obce
+    return [td_tag.get_text().strip() for td_tag in td_tagy]
 
 def rozsirit_url_kod_obce(url_kod_obce : dict, nazev_obce : list) -> dict:
     ''' funkce rozsiri dict url_kod_obce o nazev obce '''
-    for kod, nazev in zip(url_kod_obce.keys(), nazev_obce):
-        url_kod_obce[kod] = (url_kod_obce[kod], nazev)
-    return url_kod_obce
+    return {kod: (url_kod_obce[kod], nazev) for kod, nazev in zip(url_kod_obce.keys(), nazev_obce)}
 
 def ziskej_info_obce(url: str = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103") -> dict:
     ''' funkce ziska info o obcich zadaneho uzemniho celku a vytvori z nich slovnik '''
-    odpoved = posli_pozadavek_get(volby_url)
+    odpoved = posli_pozadavek_get(url)
     rozdelene_html = ziskej_parsovanou_odpoved(odpoved)
     td_tagy_odkazy = vyber_vsechny_tagy(rozdelene_html, "td", {"class" :"cislo"})
     td_tagy_nazev = vyber_vsechny_tagy(rozdelene_html, "td", {"class" : "overflow_name"})
     url_kod_obce = ziskej_url_kod_obci(td_tagy_odkazy)
     nazev_obce = ziskej_nazev_obci(td_tagy_nazev)
-    obec_info = rozsirit_url_kod_obce(url_kod_obce, nazev_obce)
-    return obec_info
+    return rozsirit_url_kod_obce(url_kod_obce, nazev_obce)
 
 def ziskej_nazvy_atributu(obce_info: dict) -> list:
     ''' funkce vrati nazvy atributu u prvni obce v seznamu'''
@@ -87,8 +98,7 @@ def ziskej_hodnoty_obce(obce_info: dict) -> list:
     ]
     vsechny_obce = []
     for kod_obec, (url, nazev) in obce_info.items():
-        hodnoty  = []
-        hodnoty.append(nazev)
+        hodnoty  = [nazev]
         odpoved_obec = posli_pozadavek_get(url)
         rozdelene_html_obec = ziskej_parsovanou_odpoved(odpoved_obec)
         for tag, atributy in atributy_hodnoty:
@@ -108,14 +118,28 @@ def uloz_data_do_csv(nazev_souboru: str, nazvy_atributu: list, hodnoty_obce: lis
             writer.writerow(hodnoty)
     print(f"Data byla uložena do souboru: {nazev_souboru}")
 
-volby_url = "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
-
-if __name__ == "__main__":
+def nacti_argumenty():
+    ''' funkce nacte argumenty z prikazove radky a spusti zpracovani dat '''
+    if len(sys.argv) != 3:
+        print(
+            "Pro spuštění chybí argumenty 'url okresu', 'nazev souboru',",
+            "Zapiš: python main.py 'https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103' 'Prostejov.csv'", sep="\n"
+        )
+    elif not sys.argv[1].startswith("https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj="):
+        print(
+            "Zadali jste špatný formát URL",
+            "Zapiš: python main.py 'https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103' 'Prostejov.csv'", sep="\n"
+            )
+    elif not sys.argv[2].endswith(".csv"):
+        print("Zadali jste špatný formát souboru")
+    else:
+        print("Zpracovávám data...")
+        obce_info = ziskej_info_obce(sys.argv[1])
+        nazvy_atributu = ziskej_nazvy_atributu(obce_info)
+        hodnoty_obce = ziskej_hodnoty_obce(obce_info)
+        uloz_data_do_csv(sys.argv[2],nazvy_atributu,hodnoty_obce)  
     
-    obce_info = ziskej_info_obce(volby_url)
-    nazvy_atributu = ziskej_nazvy_atributu(obce_info)
-    #print(nazvy_atributu)
-    hodnoty_obce = ziskej_hodnoty_obce(obce_info)
-    #print(hodnoty_obce[0])
-    csv_soubor = "Prostejov.csv"
-    uloz_data_do_csv(csv_soubor,nazvy_atributu,hodnoty_obce)    
+if __name__ == "__main__":
+    nacti_argumenty()
+    
+            
