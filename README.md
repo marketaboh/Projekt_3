@@ -33,7 +33,7 @@ python main.py "<URL okresu>" "<nazev_souboru>.csv"
 
 Příklad:
 ```sh
-python main.py "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103" "Benesov.csv"
+python main.py "https://www.volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=2&xnumnuts=2101" "Benesov.csv"
 ```
 
 ### Popis funkcionality
